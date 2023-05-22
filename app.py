@@ -7,6 +7,8 @@ from challenge2.challenge2_stack import Challenge2Stack
 
 
 app = cdk.App()
+
+
 Challenge2Stack(app, "Challenge2Stack",
     # If you don't specify 'env', this stack will be environment-agnostic.
     # Account/Region-dependent features and context lookups will not work,
