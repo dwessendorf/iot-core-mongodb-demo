@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "./iot-lambda/lambda-layer/python",
+        "./load-lambda/lambda-layer/python"
+    ]
+}

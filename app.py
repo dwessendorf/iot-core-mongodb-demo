@@ -3,13 +3,11 @@ import os
 
 import aws_cdk as cdk
 
-from challenge2.challenge2_stack import Challenge2Stack
+from iot_core_mongodb_demo.iot_core_mongodb_demo_stack import IotCoreMongodbDemoStack
 
 
 app = cdk.App()
-
-
-Challenge2Stack(app, "Challenge2Stack",
+IotCoreMongodbDemoStack(app, "IotCoreMongodbDemoStack",
     # If you don't specify 'env', this stack will be environment-agnostic.
     # Account/Region-dependent features and context lookups will not work,
     # but a single synthesized template can be deployed anywhere.
