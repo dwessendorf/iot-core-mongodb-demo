@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from pymongo import MongoClient
+from pymongo import MongoClient, WriteConcern
 import boto3
 import random
 import json
@@ -13,7 +13,7 @@ mongodb_host = os.environ.get('MONGODB_HOST')
 mongodb_user = os.environ.get('MONGODB_USER')
 mongodb_db = os.environ.get('MONGODB_DB')
 mongodb_collection = os.environ.get('MONGODB_COLLECTION')
-BATCH_SIZE = 50
+BATCH_SIZE = 100
 
 secretsmanager = boto3.client('secretsmanager')
 response = secretsmanager.get_secret_value(
@@ -31,7 +31,8 @@ cluster = MongoClient(mongo_uri)  # replace with your connection string
 
 def lambda_handler(event, context):
     db = cluster[mongodb_db]
-    collection = db[mongodb_collection]
+    wc = WriteConcern(w=1) 
+    collection =  db.get_collection(mongodb_collection, write_concern=wc)
     #wait_time = random.uniform(0.01, 30)
 
     # Prepare the list of documents for bulk insertion
@@ -47,9 +48,10 @@ def lambda_handler(event, context):
         for data_item in data_items:
             # Append the data item to the list of documents
             documents.append(data_item)
+            result = collection.insert_many(documents )
             if len(documents) == BATCH_SIZE:
                 # Insert the documents into MongoDB Atlas using insert_many
-                result = collection.insert_many(documents)
+                result = collection.insert_many(documents )
                 print('Status Code:', 'Acknowledged' if result.acknowledged else 'Not Acknowledged')
                 print('Number of Documents Inserted:', len(result.inserted_ids))
                 documents = []

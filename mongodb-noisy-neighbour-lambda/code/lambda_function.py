@@ -4,6 +4,8 @@ import boto3
 import pymongo
 import json
 import datetime
+import random
+import pprint
 
 
 mongodb_secrets_arn = os.environ.get('MONGODB_SECRET_ARN')
@@ -30,8 +32,10 @@ secrets = json.loads(response['SecretString'])
 mongodb_password = secrets['password']
 
 # Create MongoDB connection string
-mongodb_connection_string = f"mongodb+srv://{mongodb_user}:{mongodb_password}@{mongodb_host}/{mongodb_db}"
+#mongodb_connection_string = f"mongodb+srv://{mongodb_user}:{mongodb_password}@{mongodb_host}/{mongodb_db}?readPreference=secondary&readPreferenceTags=nodeType:ANALYTICS&readConcernLevel=local"
+mongodb_connection_string = f"mongodb+srv://{mongodb_user}:{mongodb_password}@{mongodb_host}/{mongodb_db}?readPreference=secondary&readConcernLevel=local"
 # Create MongoClient
+
 
 print(mongodb_connection_string)
 
@@ -43,6 +47,8 @@ def lambda_handler(event, context):
     # Select the database
     db = client[mongodb_db]
     
+    # Set db to high profiling to get index recommendations even for not long running queries
+    db.command("profile", 2)
     # Select the collection
     collection = db[mongodb_collection]
     
@@ -51,44 +57,62 @@ def lambda_handler(event, context):
     for i in range(NR_OF_EXECUTIONS):
         # Get current time
 
+        vehicle_id = random.randint(1,50000)
+
         # Get the current time
         current_time = datetime.datetime.now()
 
         # Calculate the time five minutes ago
-        five_minutes_ago = current_time - datetime.timedelta(minutes=5)
+        one_minute_ago = current_time - datetime.timedelta(minutes=15)
 
         # Convert the time to ISO format
-        five_minutes_ago_iso = five_minutes_ago.isoformat()
+        one_minute_ago_iso = one_minute_ago.isoformat()
 
         # Define the query
-        query = { "ts": { "$gte": five_minutes_ago_iso }, "vehicleid": int(vehicle_id) }
-        #query = {  "vehicleid": int(vehicle_id) }
-        #print("query:",query)
-        query_time = (datetime.datetime.now() - current_time).total_seconds() * 1000
-        #print(f"Query time: {query_time}  milliseconds")
-        # Query the database
-        results = collection.find(query)
+        #query = { "ts": { "$gte": one_minute_ago_iso }, "vehicleid": int(vehicle_id) }
+        #query = { "vehicleid": int(vehicle_id) }
+        # Complex aggregation query
+        print("starting query")
+        results = db[mongodb_collection].aggregate([
+                {"$match": {
+                    "ts": {"$gte": one_minute_ago_iso},
+                    "vehicleid": vehicle_id
+                }},
+                {"$lookup": {
+                    "from": "agricol",
+                    "localField": "vehicleid",
+                    "foreignField": "vehicleid",
+                    "as": "vehicle_info"
+                }},
+                {"$unwind": "$vehicle_info"},
+                {"$group": {
+                    "_id": None,
+                    "avg_speed": {"$avg": "$drivingspeed"},
+                    "avg_vehicle_speed": {"$avg": "$vehicle_info.drivingspeed"}
+                }}
+            ]
+        )
+
+
+
+        #results = collection.find(query)
         results_list = list(results)  # Convert the Cursor to a list
-        #count = len(results_list)
-        # print("count:", count)
-        # if count > 1:
-        #     print(results_list[1] )
-        # #print("results:", results_list)
-        # Initialize total speed and count
-        total_speed = 0
-        count = 0
-        avg_speed = 0
+        nr_of_records = len(results_list)
+        #pprint.pprint(results_list[0])
+        query_time = datetime.datetime.now() - current_time
 
-        # Calculate average speed
         for result in results_list:
-            total_speed += result['drivingspeed']
-            count += 1
-        if count > 0:
-            avg_speed = total_speed / count
+            avg_speed = result['avg_speed']
+            avg_vehicle_speed = result['avg_vehicle_speed']
+    
         
-        total_execution_time = (datetime.datetime.now() - current_time).total_seconds() * 1000
+        total_execution_time = datetime.datetime.now() - current_time
         
-        print(f"{datetime.datetime.now()}: Average speed in the last 5 minutes: {avg_speed}, Query time: {query_time}  milliseconds, Total time: {total_execution_time}  milliseconds", )
+        print(f"{datetime.datetime.now()}: VehicleID: {vehicle_id}, Average speed in the last minute: {avg_speed}, Average all time speed: {avg_vehicle_speed}, Query time: {query_time} , Record retrieved: {nr_of_records}, Total time: {total_execution_time} ", )
 
-        # Wait for 2 seconds
-        time.sleep(2)
+       # print(f"{datetime.datetime.now()}:  Query time: {query_time} , Record retrieved: {nr_of_records}, Total time: {total_execution_time} ", )
+
+        #Wait for 2 seconds
+        
+        
+        time.sleep(5)

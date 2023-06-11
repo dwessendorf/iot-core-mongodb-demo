@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from pymongo import MongoClient
+from pymongo import MongoClient, WriteConcern
 import datetime
 import random
 import time
@@ -31,45 +31,21 @@ mongo_uri  = f"mongodb+srv://{mongodb_user}:{mongodb_password}@{mongodb_host}/{m
 
 cluster = MongoClient(mongo_uri)  # replace with your connection string
 
+# Create random duration to avoid hammering fleet effect
 wait_time = random.uniform(0.01, 15)
-
-# Sleep for the random duration
+current_time = datetime.datetime.now().isoformat()
+print(f"{current_time}: Function initialized. Waiting {wait_time} seconds to avoid hammering fleet effect")
 time.sleep(wait_time)
-
-# def generate_random_documents(num_docs, request_id):
-
-
-#     docs = []
-#     for _ in range(num_docs):
-#         doc = {
-#             "_id": str(uuid.uuid4()) + "-" + request_id,  # Assign a unique _id for each document
-#             "sensor_id": "sensor_" + str(random.randint(1, 100)),       
-#             "sensor_id": "sensor_" + str(random.randint(1, 100)),
-#             "location": {
-#                 "latitude": round(random.uniform(-90, 90), 6),
-#                 "longitude": round(random.uniform(-180, 180), 6)
-#             },
-#             "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-#             "measurements": {
-#                 "temperature": round(random.uniform(-50, 50), 2),
-#                 "humidity": round(random.uniform(0, 100), 2),
-#                 "soil_moisture": round(random.uniform(0, 100), 2),
-#                 "light_intensity": round(random.uniform(0, 100), 2)
-#             }
-#         }
-#         docs.append(doc)
-
-#     return docs
 
 def generate_synthetic_data(num_records, request_id):
     data = []
 
     for _ in range(num_records):
-        current_time = datetime.now().isoformat()
+        current_time = datetime.datetime.now().isoformat()
         record = {
             "_id": str(uuid.uuid4()) + "-" + request_id,  # Assign a unique _id for each document
             'ts': current_time,
-            'vehicleid': random.randint(1, 100),
+            'vehicleid': random.randint(1, 50000),
             'temperature': round(random.uniform(5.0, 40.0), 2),
             'operatingtime': random.randint(0, 1000),
             'fuelusage': round(random.uniform(0.0, 10.0), 2),
@@ -122,14 +98,18 @@ def generate_synthetic_data(num_records, request_id):
 def lambda_handler(event, context):
 
     db = cluster[mongodb_db]
-    collection = db[mongodb_collection]
+    wc = WriteConcern(w=1) 
+    collection =  db.get_collection(mongodb_collection, write_concern=wc)
     # Add artificial wait time to avoid hammering effect
-
+    inserted_docs = 0
     for _ in range(100):
 
         random_int = random.randint(80, 200)
         docs_to_insert = generate_synthetic_data(random_int, context.aws_request_id)
         collection.insert_many(docs_to_insert, ordered=False)
+        inserted_docs += random_int
+        current_time = datetime.datetime.now().isoformat()
+        print(f"{current_time}:{random_int} records inserted this round, {inserted_docs} rows inserted in total")
         wait_time = random.uniform(0.05, 0.1)
         time.sleep(wait_time)
 

@@ -17,7 +17,7 @@ import requests
 logging.basicConfig(level=logging.INFO) 
 
 RANGE = 5900
-BATCH_SIZE = 200
+BATCH_SIZE = 101
 SLEEP_INTERVAL = 0.01
 
 TOPIC = os.environ.get('IOT_TOPIC')
@@ -123,7 +123,7 @@ def send_messages(mqtt_connection, messages):
         mqtt_connection.publish(topic=TOPIC, payload=payload, qos=mqtt.QoS.AT_MOST_ONCE)
         logging.info("Message published successfully.")
     except Exception as e:
-        logging.info("Error occurred while publishing the message:" + str(e))
+        logging.info("Error occurred while publishing the message:", str(e))
 
 
 def connect_mqtt(client_id):
