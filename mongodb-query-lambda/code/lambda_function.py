@@ -36,18 +36,21 @@ client = pymongo.MongoClient(mongodb_connection_string)
 def lambda_handler(event, context):
     # Select the database
     db = client[mongodb_db]
-    # Set db to high profiling to get index recommendations even for not long running queries
-    db.command("profile", 2)
+
     # Select the collection
     collection = db[mongodb_collection]
-
-    for i in range(NR_OF_EXECUTIONS):
+    
+    current_time = datetime.datetime.now()
+    end_time = current_time + datetime.timedelta(seconds=900)
+    # Query the collection
+    
+    while current_time < end_time:
         # Get the current time
         # Get the current time
         current_time = datetime.datetime.now()
 
         # Calculate the time five minutes ago
-        five_minutes_ago = current_time - datetime.timedelta(minutes=15)
+        five_minutes_ago = current_time - datetime.timedelta(minutes=5)
 
         # Convert the time to ISO format
         five_minutes_ago_iso = five_minutes_ago.isoformat()
@@ -79,7 +82,9 @@ def lambda_handler(event, context):
         #query_time = (datetime.datetime.now() - current_time).total_seconds() * 1000
         total_execution_time = datetime.datetime.now() - current_time
         
-        print(f"{datetime.datetime.now()}: VehicleID: {vehicle_id}, Average speed in the last 15 minutes: {avg_speed}, Query time: {total_execution_time} ")
+        print(f"{datetime.datetime.now()}: VehicleID: {vehicle_id}, Average speed in the last 5 minutes: {avg_speed}, Query time: {total_execution_time} ")
 
-        # Wait for 2 seconds
+        # Wait for 1 second
         time.sleep(1)
+
+        current_time = datetime.datetime.now()

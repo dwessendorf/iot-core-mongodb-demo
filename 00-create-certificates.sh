@@ -1,5 +1,5 @@
 #!/bin/bash
-
+mkdir certificates
 # define CN
 CN="www.example.com"
 

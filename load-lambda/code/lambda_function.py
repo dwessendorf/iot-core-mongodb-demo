@@ -102,7 +102,7 @@ def lambda_handler(event, context):
     collection =  db.get_collection(mongodb_collection, write_concern=wc)
     # Add artificial wait time to avoid hammering effect
     inserted_docs = 0
-    for _ in range(100):
+    for _ in range(500):
 
         random_int = random.randint(80, 200)
         docs_to_insert = generate_synthetic_data(random_int, context.aws_request_id)

@@ -16,11 +16,13 @@ class IotCoreMongodbDemoStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
 
-        #time.sleep(7 * 60)
+        #time.sleep(5 * 60)
   
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         # Configuration
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         
         IOT_TOPIC = "topic"
         PRIVATE_KEY_PATH = "./certificates/private_key.key"
@@ -56,9 +58,11 @@ class IotCoreMongodbDemoStack(Stack):
             raise ValueError("Environment variable MONGODB_PW is not set")
 
 
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         # Secret Manager Secrets for MongoDb access and IOT authentication
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
 
         # Define the MongoDB secret
         mongodb_secret = aws_secretsmanager.Secret(self, "AgriMongoDBSecret",
@@ -81,9 +85,11 @@ class IotCoreMongodbDemoStack(Stack):
         )
 
 
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         # Kinesis Stream
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
 
         # Define the Kinesis stream
         kinesis_stream = aws_kinesis.Stream(self, "AgriKinesisStream")
@@ -94,9 +100,11 @@ class IotCoreMongodbDemoStack(Stack):
         )
         kinesis_stream.grant_write(role)
 
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         # IOT Core
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
 
         # Define the AWS IoT topic rule
         iot_topic_rule = aws_iot.CfnTopicRule(self, "AgriIoTTopicRule",
@@ -148,9 +156,11 @@ class IotCoreMongodbDemoStack(Stack):
             principal=aws_iot_cert.attr_arn
         )
 
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         # IOT Core Producer Lambda
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
 
         # Create a Lambda Layer covering all python dependencies        
         lambda_layer_iot = aws_lambda.LayerVersion(self, "AgriIOTLambdaLayer",
@@ -167,7 +177,7 @@ class IotCoreMongodbDemoStack(Stack):
             handler='lambda_function.lambda_handler',  # replace with your lambda function file name and method
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
             function_name='AgriIOTInsertFunction',
-            timeout=Duration.seconds(60),
+            timeout=Duration.seconds(120),
             memory_size=3008,
             description='Lambda function for agricultural IOT data insertion',
             layers = [lambda_layer_iot],
@@ -202,14 +212,16 @@ class IotCoreMongodbDemoStack(Stack):
         # Add an EventBridgeRule that triggers the Lambda
         lambda_function_iot_rule = Rule(
             self, 'AgriLambdaIOTProducerRule',
-            schedule=Schedule.rate(Duration.minutes(1)),
+            schedule=Schedule.rate(Duration.minutes(2)),
             enabled=IOT_PRODUCER_ACTIVE,
             targets=[LambdaFunction(lambda_function_iot, max_event_age=Duration.seconds(120), retry_attempts=1)]  
         )
 
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         # Kinesis Reader Lambda
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
 
         # Create a Lambda Layer covering all python dependencies    
         lambda_layer_kinesis_reader = aws_lambda.LayerVersion(self, "AgriKinesisReaderLambdaLayer",
@@ -226,7 +238,7 @@ class IotCoreMongodbDemoStack(Stack):
             handler='lambda_function.lambda_handler',  # replace with your lambda function file name and method
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
             function_name='AgriKinesisReaderFunction',
-            timeout=Duration.seconds(600),
+            timeout=Duration.seconds(900),
             memory_size=3008,
             description='Lambda function for reading from Kinesis and inserting into MongoDB.',
             layers = [lambda_layer_kinesis_reader],
@@ -253,9 +265,11 @@ class IotCoreMongodbDemoStack(Stack):
             ))
 
 
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         # MongoDB Query Lambda
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
 
         # Create a Lambda Layer covering all python dependencies    
         lambda_layer_mongodb_query = aws_lambda.LayerVersion(self, "AgriMongoDBQueryLayer",
@@ -272,7 +286,7 @@ class IotCoreMongodbDemoStack(Stack):
             handler='lambda_function.lambda_handler',  # replace with your lambda function file name and method
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
             function_name='AgriMongodbQueryFunction',
-            timeout=Duration.seconds(120),
+            timeout=Duration.seconds(300),
             memory_size=3008,
             description='Lambda function for querieng agricultural IOT data from MongoDB',
             layers = [lambda_layer_mongodb_query],
@@ -295,14 +309,16 @@ class IotCoreMongodbDemoStack(Stack):
         # Add an EventBridgeRule that triggers the Lambda
         lambda_function_mongodb_query_rule = Rule(
             self, 'AgriLambdaMongoDBQueryRule',
-            schedule=Schedule.rate(Duration.minutes(2)),
+            schedule=Schedule.rate(Duration.minutes(5)),
             enabled=MONGODB_QUERY_ACTIVE,
             targets=[LambdaFunction(lambda_function_mongodb_query, max_event_age=Duration.seconds(120), retry_attempts=1)]  
         )
 
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         # MongoDB Noisy Neighbour Lambda
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
 
         # Create a Lambda Layer covering all python dependencies    
         lambda_layer_mongodb_noisy_neighbour = aws_lambda.LayerVersion(self, "AgriMongoDBNoisyNeighbourLayer",
@@ -319,7 +335,7 @@ class IotCoreMongodbDemoStack(Stack):
             handler='lambda_function.lambda_handler',  # replace with your lambda function file name and method
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
             function_name='AgriMongodbNoisyNeighbourFunction',
-            timeout=Duration.seconds(900),
+            timeout=Duration.seconds(300),
             memory_size=3008,
             description='Lambda function for querieng agricultural IOT data from MongoDB',
             layers = [lambda_layer_mongodb_noisy_neighbour],
@@ -342,15 +358,18 @@ class IotCoreMongodbDemoStack(Stack):
          # Add an EventBridgeRule that triggers the Lambda      
         lambda_function_mongodb_noisy_neighbour_rule = Rule(
             self, 'AgriLambdaNoisyNeighbourRule',
-            schedule=Schedule.rate(Duration.minutes(2)),
+            schedule=Schedule.rate(Duration.minutes(5)),
             enabled=NOISY_NEIGHBOUR_ACTIVE,
             targets=[LambdaFunction(lambda_function_mongodb_noisy_neighbour, max_event_age=Duration.seconds(120), retry_attempts=1)]  
         )      
         
  
-        ########################################################################################
+        ########################################################################################  
+        ########################################################################################  
         # Load Generation Lambda Function
-        ########################################################################################       
+        ########################################################################################  
+        ########################################################################################    
+  
 
         # Create a Lambda Layer covering all python dependencies            
         lambda_layer_load = aws_lambda.LayerVersion(self, "AgriLambdaLoadGenLambdaLayer",
@@ -366,8 +385,8 @@ class IotCoreMongodbDemoStack(Stack):
             code=aws_lambda.Code.from_asset('load-lambda/code'),  # point this to your lambda function directory
             handler='lambda_function.lambda_handler',  # replace with your lambda function file name and method
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
-            function_name='AgriculturalLoadInsertFunction',
-            timeout=Duration.seconds(900),
+            function_name='AgriLoadInsertFunction',
+            timeout=Duration.seconds(120),
             memory_size=3008,
             description='Lambda function for agricultural IOT data insertion',
             layers = [lambda_layer_load],
@@ -394,7 +413,7 @@ class IotCoreMongodbDemoStack(Stack):
             definition.branch(LambdaInvoke(self, f'InvokeLambda{i}', lambda_function=lambda_function_load))
 
         state_machine_1 = StateMachine(
-            self, 'AgriLoadGernerationStateMachine',
+            self, 'AgriLoadGenerationStateMachine',
             definition=definition,
             timeout=Duration.minutes(5)
         )

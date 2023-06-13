@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
 import logging
-from awscrt import io, mqtt, auth, http
+from awscrt import io, mqtt
 from awsiot import mqtt_connection_builder
 import time 
 import json
 import os
 import random
-from datetime import datetime, timedelta
+import datetime
 import boto3
-import atexit
 import requests
+import uuid
 
 # Define ENDPOINT, CLIENT_ID, PATH_TO_CERTIFICATE, PATH_TO_PRIVATE_KEY, PATH_TO_AMAZON_ROOT_CA_1, MESSAGE, TOPIC, and RANGE
 
@@ -56,12 +56,13 @@ with open(PRIVATE_KEY_PATH, "w") as key_file:
 with open(CERTIFICATE_PATH,"w") as pem_file:
     pem_file.write(cert)
 
-def generate_synthetic_data(num_records, range_num):
+def generate_synthetic_data(num_records,  request_id):
     data = []
 
     for _ in range(num_records):
-        current_time = datetime.now().isoformat()
+        current_time = datetime.datetime.now().isoformat()
         record = {
+            "_id": str(uuid.uuid4()) + "-" + request_id,  # Assign a unique _id for each document
             'ts': current_time,
             'vehicleid': random.randint(1, 50000),
             'temperature': round(random.uniform(5.0, 40.0), 2),
@@ -160,22 +161,27 @@ def lambda_handler(event, context):
     mqtt_connection = connect_mqtt(client_id)
     inserted_docs = 0
     last_print_nr = 0
-    #while True:
-    for i in range (RANGE):
-        # Generate a single message
+    i = 0
+    current_time = datetime.datetime.now()
+    end_time = current_time + datetime.timedelta(seconds=900)
+    
+    while current_time < end_time:
+        i += 1
         logging.info(f"Batch Run:{i}")
         random_int = random.randint(BATCH_SIZE-20, BATCH_SIZE+20)
-        messages= generate_synthetic_data(random_int, i)
+        messages= generate_synthetic_data(random_int, context.aws_request_id)
 
         send_messages(mqtt_connection, messages)
         messages = []  # Clear the batch
         inserted_docs += random_int
-        current_time = datetime.now().isoformat()
+        current_time = datetime.datetime.now().isoformat()
         if (inserted_docs > last_print_nr + 5000):
             print(f"{current_time}:{inserted_docs-last_print_nr} records inserted this round, {inserted_docs} rows inserted in total")
             last_print_nr = inserted_docs
             # Sleep for the specified interval
         time.sleep(SLEEP_INTERVAL)
+        current_time = datetime.datetime.now()
+
 
     mqtt_connection.disconnect().result()
     mqtt_connection = None

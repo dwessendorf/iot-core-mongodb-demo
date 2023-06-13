@@ -47,14 +47,14 @@ def lambda_handler(event, context):
     # Select the database
     db = client[mongodb_db]
     
-    # Set db to high profiling to get index recommendations even for not long running queries
-    db.command("profile", 2)
     # Select the collection
     collection = db[mongodb_collection]
+
+    current_time = datetime.datetime.now()
+    end_time = current_time + datetime.timedelta(seconds=900)
+    # Query the collection
     
-
-
-    for i in range(NR_OF_EXECUTIONS):
+    while current_time < end_time:
         # Get current time
 
         vehicle_id = random.randint(1,50000)
@@ -68,12 +68,8 @@ def lambda_handler(event, context):
         # Convert the time to ISO format
         one_minute_ago_iso = one_minute_ago.isoformat()
 
-        # Define the query
-        #query = { "ts": { "$gte": one_minute_ago_iso }, "vehicleid": int(vehicle_id) }
-        #query = { "vehicleid": int(vehicle_id) }
-        # Complex aggregation query
-        print("starting query")
-        results = db[mongodb_collection].aggregate([
+        # Run the query
+        results = collection.aggregate([
                 {"$match": {
                     "ts": {"$gte": one_minute_ago_iso},
                     "vehicleid": vehicle_id
@@ -93,26 +89,20 @@ def lambda_handler(event, context):
             ]
         )
 
-
-
-        #results = collection.find(query)
         results_list = list(results)  # Convert the Cursor to a list
-        nr_of_records = len(results_list)
-        #pprint.pprint(results_list[0])
         query_time = datetime.datetime.now() - current_time
 
+        # Initialize variables
+        avg_speed = 0
+        avg_vehicle_speed = 0
+
+        # Get the average speed and vehicle speed from the query results
         for result in results_list:
             avg_speed = result['avg_speed']
             avg_vehicle_speed = result['avg_vehicle_speed']
     
-        
-        total_execution_time = datetime.datetime.now() - current_time
-        
-        print(f"{datetime.datetime.now()}: VehicleID: {vehicle_id}, Average speed in the last minute: {avg_speed}, Average all time speed: {avg_vehicle_speed}, Query time: {query_time} , Record retrieved: {nr_of_records}, Total time: {total_execution_time} ", )
+        print(f"{datetime.datetime.now()}: VehicleID: {vehicle_id}, Avg. speed (last minute): {round(avg_speed,2)}, Avg. speed (total): {round(avg_vehicle_speed,2)}, Query time: {query_time}" )
 
-       # print(f"{datetime.datetime.now()}:  Query time: {query_time} , Record retrieved: {nr_of_records}, Total time: {total_execution_time} ", )
-
-        #Wait for 2 seconds
-        
-        
+        # Sleep for 5 seconds
         time.sleep(5)
+        current_time = datetime.datetime.now()

@@ -48,13 +48,19 @@ def lambda_handler(event, context):
         for data_item in data_items:
             # Append the data item to the list of documents
             documents.append(data_item)
-            result = collection.insert_many(documents )
+            
             if len(documents) == BATCH_SIZE:
                 # Insert the documents into MongoDB Atlas using insert_many
                 result = collection.insert_many(documents )
                 print('Status Code:', 'Acknowledged' if result.acknowledged else 'Not Acknowledged')
                 print('Number of Documents Inserted:', len(result.inserted_ids))
                 documents = []
+                
+        if len(documents) > 0:
+            result = collection.insert_many(documents )
+            print('Status Code:', 'Acknowledged' if result.acknowledged else 'Not Acknowledged')
+            print('Final Batch of number of Documents Inserted:', len(result.inserted_ids))
+            documents = []
 
     return {
         'statusCode': 200,
