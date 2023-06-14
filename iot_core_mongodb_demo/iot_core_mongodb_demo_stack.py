@@ -24,20 +24,26 @@ class IotCoreMongodbDemoStack(Stack):
         ########################################################################################  
         ########################################################################################  
         
-        IOT_TOPIC = "topic"
-        PRIVATE_KEY_PATH = "./certificates/private_key.key"
-        CERTIFICATE_SIGNING_REQUEST_PATH = "./certificates/signing_request.csr"
+        IOT_TOPIC = "topic"                           # The topic that the IOT Producer Lambda will publish to
+        PRIVATE_KEY_PATH = "./certificates/private_key.key" # Path to the private key file (can be created using the 00-create-certificates.sh script)
+        CERTIFICATE_SIGNING_REQUEST_PATH = "./certificates/signing_request.csr" # Path to the certificate signing request file (can be created using the 00-create-certificates.sh script)
         
-        IOT_PRODUCER_ACTIVE = True
-        KINESIS_READER_ACTIVE = True
-        MONGODB_QUERY_ACTIVE = True
-        NOISY_NEIGHBOUR_ACTIVE = True
-        NR_OF_LOAD_GENERATORS_ACTIVE = 0
+        IOT_PRODUCER_ACTIVE = True                     # Set to false if you do not want the IOT Producer Lambda to be activated during deployment 
+        KINESIS_READER_ACTIVE = True                   # Set to false if you do not want the Kinesis Reader Lambda to be activated during deployment
+        MONGODB_QUERY_ACTIVE = True                    # Set to false if you do not want the MongoDB Query EventBridge Rule to be activated during deployment
+        NOISY_NEIGHBOUR_ACTIVE = True                  # Set to false if you do not want the Noisy Neighbour EventBridge Rule to be activated during deployment 
+        NR_OF_LOAD_GENERATORS_ACTIVE = 0               # Adjust how many Eventbridge Rules that trigger state machines will be set to active during deployment
+
+        TOTAL_NR_OF_LOAD_GENERATORS_DEPLOYED = 10      # Adjust total number of Eventbridge Rules that trigger state machines based on your requirements
+        NR_OF_LAMBDA_FUNCTIONS_PER_LOAD_GENERATOR = 25 # Adjust number of Lambda Functions per Load generator state machine that will be deployed
+
+
         
-        KINESIS_READER_BATCH_SIZE = 50
+        KINESIS_READER_BATCH_SIZE = 50                 # Adjust the batch size of the Kinsesis Reader Lambda Function. 
+                                                       # This value is used to determine how many records are read from the Kinesis Stream at once.
         
-        MONGODB_DB = "agridb"
-        MONGODB_COL = "agricol"
+        MONGODB_DB = "agridb"                          # # The name of the MongoDB database
+        MONGODB_COL = "agricol"                        # # The name of the MongoDB collection
 
         # Retrieve MongoDB host from environment variable
         MONGODB_HOST = os.getenv("MONGODB_HOST")
@@ -409,7 +415,7 @@ class IotCoreMongodbDemoStack(Stack):
         
         # Define the Step Function state machine
         definition = Parallel(self, 'AgriStateMachineParallelStates')
-        for i in range(25):  # Adjust this number based on your requirements
+        for i in range(NR_OF_LAMBDA_FUNCTIONS_PER_LOAD_GENERATOR):  
             definition.branch(LambdaInvoke(self, f'InvokeLambda{i}', lambda_function=lambda_function_load))
 
         state_machine_1 = StateMachine(
@@ -419,7 +425,7 @@ class IotCoreMongodbDemoStack(Stack):
         )
 
         # Define the EventBridge rule to trigger the state machine every minute
-        for i in range(10):  # Adjust this number based on your requirements
+        for i in range(TOTAL_NR_OF_LOAD_GENERATORS_DEPLOYED):  
             if i < NR_OF_LOAD_GENERATORS_ACTIVE:
                 LOAD_GENERATOR_ACTIVE = True
             else:
