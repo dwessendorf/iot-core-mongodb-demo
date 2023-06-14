@@ -178,7 +178,7 @@ class IotCoreMongodbDemoStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
             function_name='AgriIOTInsertFunction',
             timeout=Duration.seconds(120),
-            memory_size=3008,
+            memory_size=128,
             description='Lambda function for agricultural IOT data insertion',
             layers = [lambda_layer_iot],
             environment={
@@ -239,7 +239,7 @@ class IotCoreMongodbDemoStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
             function_name='AgriKinesisReaderFunction',
             timeout=Duration.seconds(900),
-            memory_size=3008,
+            memory_size=256,
             description='Lambda function for reading from Kinesis and inserting into MongoDB.',
             layers = [lambda_layer_kinesis_reader],
             environment={
@@ -287,7 +287,7 @@ class IotCoreMongodbDemoStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
             function_name='AgriMongodbQueryFunction',
             timeout=Duration.seconds(300),
-            memory_size=3008,
+            memory_size=128,
             description='Lambda function for querieng agricultural IOT data from MongoDB',
             layers = [lambda_layer_mongodb_query],
             environment={
@@ -336,7 +336,7 @@ class IotCoreMongodbDemoStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
             function_name='AgriMongodbNoisyNeighbourFunction',
             timeout=Duration.seconds(300),
-            memory_size=3008,
+            memory_size=256,
             description='Lambda function for querieng agricultural IOT data from MongoDB',
             layers = [lambda_layer_mongodb_noisy_neighbour],
             environment={
@@ -387,7 +387,7 @@ class IotCoreMongodbDemoStack(Stack):
             runtime=aws_lambda.Runtime.PYTHON_3_9,  # replace with your Python version
             function_name='AgriLoadInsertFunction',
             timeout=Duration.seconds(120),
-            memory_size=3008,
+            memory_size=128,
             description='Lambda function for agricultural IOT data insertion',
             layers = [lambda_layer_load],
             environment={
@@ -426,11 +426,11 @@ class IotCoreMongodbDemoStack(Stack):
                 LOAD_GENERATOR_ACTIVE = False
             
             rule = Rule(
-            self, f'AgriStateMachineTrigger{i}',
-            schedule=Schedule.rate(Duration.minutes(1)),
-            enabled=LOAD_GENERATOR_ACTIVE,
-            targets=[SfnStateMachine(state_machine_1)]
-        )
+                self, f'AgriStateMachineTrigger{i}',
+                schedule=Schedule.rate(Duration.minutes(1)),
+                enabled=LOAD_GENERATOR_ACTIVE,
+                targets=[SfnStateMachine(state_machine_1)]
+            )
 
 
 
