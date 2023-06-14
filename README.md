@@ -24,7 +24,7 @@ Run following shell script to Initialize the python environment and import cdk r
 Run this shell script to check which resources will be deployed. Be aware of potential costs for the deployed components.
 
 ```
-./02-deploy-stack.sh
+./02-check-changes.sh
 ```
 
 Once you checked the deployments run this shell script to deploy them.
