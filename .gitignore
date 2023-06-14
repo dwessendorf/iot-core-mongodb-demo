@@ -12,3 +12,4 @@ cdk.out
 .env/
 .venv/
 certificates
+.vscode
